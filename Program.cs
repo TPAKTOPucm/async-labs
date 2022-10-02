@@ -29,6 +29,12 @@ namespace matrix {
 			result = matrixMultiplicationParallel(matrixA, matrixB, 6);
 			watch.Stop();
 			printMatrix(result);
+			Console.WriteLine("Затраченное время: " + watch.ElapsedMilliseconds + " ms\n" +
+				"Асинхронное перемножение(конвейер):");
+			watch.Restart();
+			result = matrixMultiplicationParallel(matrixA, matrixB);
+			watch.Stop();
+			printMatrix(result);
 			Console.WriteLine("Затраченное время: " + watch.ElapsedMilliseconds + " ms");
 		}
 		static void RandomMatrix(int[,] matrix) {
@@ -77,6 +83,9 @@ namespace matrix {
 			}
 			Task.WaitAll(tasks);
 			return result;
+		}
+		static int[,] matrixMultiplicationParallel(int[,] A, int[,] B) {
+			return matrixMultiplicationParallel(A, B, A.GetLength(0));
 		}
 	}
 }

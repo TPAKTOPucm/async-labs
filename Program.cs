@@ -3,9 +3,15 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace matrix {
-	class Program {
-		static void Main(string[] args) {
+namespace matrix
+{
+	class Program
+	{
+		static int[,] A;
+		static int[,] B;
+		static int[,] result;
+		static void Main(string[] args)
+		{
 			int firstHight = int.Parse(Console.ReadLine());
 			int firstLength_secondHeigth = int.Parse(Console.ReadLine());
 			int secondlength = int.Parse(Console.ReadLine());
@@ -13,40 +19,46 @@ namespace matrix {
 			int[,] matrixB = new int[firstLength_secondHeigth, secondlength];
 			RandomMatrix(matrixA);
 			RandomMatrix(matrixB);
+			A = matrixA;
+			B = matrixB;
 			Console.WriteLine("Матрица А:");
-			PrintMatrix(matrixA);
+			//printMatrix(matrixA);
 			Console.WriteLine("Матрица B:");
-			PrintMatrix(matrixB);
+			//printMatrix(matrixB);
 			Console.WriteLine("Синхронное перемножение:");
 			Stopwatch watch = new Stopwatch();
 			watch.Start();
-			var result = MatrixMultiplication(matrixA, matrixB);
+			result = matrixMultiplication(matrixA, matrixB);
 			watch.Stop();
-			PrintMatrix(result);
+			//printMatrix(result);
 			Console.WriteLine("Затраченное время: " + watch.ElapsedMilliseconds + " ms\n" +
 				"Асинхронное перемножение:");
 			watch.Restart();
-			result = MatrixMultiplicationParallel(matrixA, matrixB, 6);
+			result = matrixMultiplicationParallel(matrixA, matrixB, 6);
 			watch.Stop();
-			PrintMatrix(result);
+			//printMatrix(result);
 			Console.WriteLine("Затраченное время: " + watch.ElapsedMilliseconds + " ms\n" +
 				"Асинхронное перемножение(конвейер):");
 			watch.Restart();
-			result = MatrixMultiplicationParallel(matrixA, matrixB);
+			result = matrixMultiplicationParallel();
 			watch.Stop();
-			PrintMatrix(result);
+			//printMatrix(result);
 			Console.WriteLine("Затраченное время: " + watch.ElapsedMilliseconds + " ms");
 		}
-		static void RandomMatrix(int[,] matrix) {
+		static void RandomMatrix(int[,] matrix)
+		{
 			Random randomInt = new Random();
 			for (int i = 0; i < matrix.GetLength(1); i++)
 				for (int j = 0; j < matrix.GetLength(0); j++)
 					matrix[j, i] = randomInt.Next(10);
 		}
-		static int[,] MatrixMultiplication(int[,] A, int[,] B) {
+		static int[,] matrixMultiplication(int[,] A, int[,] B)
+		{
 			int[,] result = new int[A.GetLength(0), B.GetLength(1)];
-			for (int i = 0; i < result.GetLength(0); i++) {
-				for (int j = 0; j < result.GetLength(1); j++) {
+			for (int i = 0; i < result.GetLength(0); i++)
+			{
+				for (int j = 0; j < result.GetLength(1); j++)
+				{
 					result[i, j] = 0;
 					for (int k = 0; k < A.GetLength(1); k++)
 						result[i, j] += A[i, k] * B[k, j];
@@ -54,42 +66,63 @@ namespace matrix {
 			}
 			return result;
 		}
-		static void PrintMatrix(int[,] matrix) {
-			for (int i = 0; i < matrix.GetLength(0); i++) {
+		static void printMatrix(int[,] matrix)
+		{
+			for (int i = 0; i < matrix.GetLength(0); i++)
+			{
 				for (int j = 0; j < matrix.GetLength(1); j++)
 					Console.Write(matrix[i, j] + " ");
 				Console.WriteLine();
 			}
 		}
-		static int[,] MatrixMultiplicationParallel(int[,] A, int[,] B, int numOfThreads) {
+		static int[,] matrixMultiplicationParallel(int[,] A, int[,] B, int numOfThreads)
+		{
 			int[,] result = new int[A.GetLength(0), B.GetLength(1)];
-			var threads = new Thread[numOfThreads];
-			int stringsPerThread = (int)(result.GetLength(0)/(double)numOfThreads+0.9);
-			for (int threadIndex = 0; threadIndex < numOfThreads; threadIndex++) {
-				int lastNum = (threadIndex + 1) * stringsPerThread;
-				if (threadIndex == numOfThreads - 1) {
+			var tasks = new Task[numOfThreads];
+			int stringsPerThread = (int)(result.GetLength(0) / (double)numOfThreads + 0.9);
+			for (int i = 0; i < numOfThreads; i++)
+			{
+				int lastNum = (i + 1) * stringsPerThread;
+				if (i == numOfThreads - 1)
+				{
 					lastNum = result.GetLength(0);
 				}
-				threads[threadIndex] = new Thread(() => {
-					StringMultiplication(threadIndex * stringsPerThread, lastNum, A, B, result);
+				tasks[i] = Task.Run(() => {
+					for (int j = i * stringsPerThread; j < lastNum; j++)
+					{
+						for (int k = 0; k < result.GetLength(1); k++)
+						{
+							result[j, k] = 0;
+							for (int n = 0; n < A.GetLength(1); n++)
+								result[j, k] += A[j, n] * B[n, k];
+						}
+					}
 				});
-				threads[threadIndex].Start();
 				Thread.Sleep(2);
 			}
-			foreach (var thread in threads)
-				thread.Join();
+			Task.WaitAll(tasks);
 			return result;
 		}
-		static int[,] MatrixMultiplicationParallel(int[,] A, int[,] B) {
-			return MatrixMultiplicationParallel(A, B, A.GetLength(0));
+		static int[,] matrixMultiplicationParallel()
+		{
+			result = new int[A.GetLength(0), B.GetLength(1)];
+			Thread[] threads = new Thread[result.GetLength(0)];
+			for (int i = 0; i < result.GetLength(0); i++)
+			{
+				threads[i] = new Thread(new ParameterizedThreadStart(stringMultiplication));
+				threads[i].Start(i);
+			}
+			return result;
 		}
-		static void StringMultiplication(int firstString, int numOfStrings, int[,] A, int[,] B, int[,] result) {
-			for (int i = firstString; i < numOfStrings; i++) {
-				for (int j = 0; j < result.GetLength(1); j++) {
-					result[i, j] = 0;
-					for (int k = 0; k < A.GetLength(1); k++)
-						result[i, j] += A[i, k] * B[k, j];
-				}
+		static void stringMultiplication(object numOfString)
+		{
+			int i = (int) numOfString;
+			for (int j = 0; j < result.GetLength(1); j++)
+			{
+				int resultInt = 0;
+				for (int k = 0; k < A.GetLength(1); k++)
+					resultInt += A[i, k] * B[k, j];
+				result[i, j] = resultInt;
 			}
 		}
 	}

@@ -44,6 +44,11 @@ namespace matrix
 			watch.Stop();
 			//printMatrix(result);
 			Console.WriteLine("Затраченное время: " + watch.ElapsedMilliseconds + " ms");
+			watch.Restart();
+			result = matrixMultiplicationParallelTask();
+			watch.Stop();
+			//printMatrix(result);
+			Console.WriteLine("Затраченное время: " + watch.ElapsedMilliseconds + " ms");
 		}
 		static void RandomMatrix(int[,] matrix)
 		{
@@ -111,6 +116,15 @@ namespace matrix
 			{
 				threads[i] = new Thread(new ParameterizedThreadStart(stringMultiplication));
 				threads[i].Start(i);
+			}
+			return result;
+		}
+		static int[,] matrixMultiplicationParallelTask() {
+			result = new int[A.GetLength(0), B.GetLength(1)];
+			Task[] threads = new Task[result.GetLength(0)];
+			for (int i = 0; i < result.GetLength(0); i++) {
+				threads[i] = new Task(stringMultiplication, i);
+				threads[i].Start();
 			}
 			return result;
 		}
